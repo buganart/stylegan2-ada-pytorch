@@ -98,10 +98,6 @@ pretrained = {
 
 @app.route("/generate-latent-walk", methods=["post"])
 def generate():
-    # TODO: install dependency
-    # python 3.7
-    # pip install opensimplex, click, flask, requests, Pillow, tqdm, scipy
-    # pip install tensorflow==1.15
     req = request.get_json(force=True)
     print("req", req)
     ckpt_file = req.get("ckpt_file", "ffhq")
@@ -111,46 +107,45 @@ def generate():
     class_idx = int(req.get("class_idx", 0))
     noise_mode = req.get("noise_mode", "const")
 
+    # ckpt_file = "ffhq"
+    # seeds = "3,7"
+    # frames = 10
+    # psi = 1.0
+    # class_idx = 0
+    # noise_mode = "const"
+
     # validate seeds
     seeds = seeds.split(",")
     seeds = [int(s) for s in seeds]
     # # validate ckpt_file
 
-    if ckpt_file in [
-        "ffhq",
-        "metfaces",
-        "afhqcat",
-        "afhqdog",
-        "afhqwild",
-        "cifar10",
-        "brecahad",
-    ]:
-        network_pkl = pretrained[ckpt_file]
-    else:
-        network_pkl = ckpt_file
-    # ckpt_file_name = str(Path(ckpt_file).stem)
-
-    # ckptfile_list = Path(ckpt_dir).rglob("*.*")
-    # target_ckpt = None
-    # for ckpt in ckptfile_list:
-    #     print("file:", ckpt)
-    #     ckpt_name = str(Path(ckpt).stem)
-    #     if ckpt_name == ckpt_file_name:
-    #         target_ckpt = str(ckpt)
-    #         break
-
-    # modify package functions for our needs
-    # setup generator and parameters
-
-    ##############
-    # copied from generate.py
-    ##############
-    # load model
-    print('Loading networks from "%s"...' % network_pkl)
-    # device = torch.device('cuda')
     device = torch.device("cpu")
-    with dnnlib.util.open_url(network_pkl) as f:
-        G = legacy.load_network_pkl(f)["G_ema"].to(device)  # type: ignore
+    if ckpt_file in pretrained.keys():
+        network_pkl = pretrained[ckpt_file]
+
+        # load model
+        print('Loading networks from "%s"...' % network_pkl)
+        with dnnlib.util.open_url(network_pkl) as f:
+            G = legacy.load_network_pkl(f)["G_ema"].to(device)  # type: ignore
+    else:
+        ckpt_file_name = str(Path(ckpt_file).stem)
+
+        ckptfile_list = Path(ckpt_dir).rglob("*.*")
+        target_ckpt = None
+        for ckpt in ckptfile_list:
+            print("file:", ckpt)
+            ckpt_name = str(Path(ckpt).stem)
+            if ckpt_name == ckpt_file_name:
+                target_ckpt = str(ckpt)
+                break
+
+        if target_ckpt is None:
+            raise Exception(f"ckpt file:{ckpt_file} not found in ckpt dir:{ckpt_dir}")
+
+        # load model
+        print('Loading networks from "%s"...' % target_ckpt)
+        with dnnlib.util.open_url(target_ckpt) as f:
+            G = legacy.load_network_pkl(f)["G_ema"].to(device)  # type: ignore
 
     ##############
 
@@ -194,7 +189,7 @@ def setup(cli_checkpoint_dir="./checkpoint/"):
 @click.option("--checkpoint-dir", "-cp", default="./checkpoint/")
 def api_run(debug, checkpoint_dir):
     app = setup(checkpoint_dir)
-    app.run(debug=True, host="0.0.0.0", port=int(os.environ.get("PORT", 8080)))
+    app.run(debug=debug, host="0.0.0.0", port=int(os.environ.get("PORT", 8080)))
 
 
 if __name__ == "__main__":
