@@ -16,6 +16,7 @@ import PIL.Image
 import numpy as np
 import torch
 import dnnlib
+import wandb
 from torch_utils import misc
 from torch_utils import training_stats
 from torch_utils.ops import conv2d_gradfix
@@ -106,6 +107,7 @@ def training_loop(
     random_seed=0,  # Global random seed.
     num_gpus=1,  # Number of GPUs participating in the training.
     rank=0,  # Rank of the current process in [0, num_gpus[.
+    start_epoch=0,  # The start epoch of the training (always 0 for new run, non-0 for resume run)
     batch_size=4,  # Total batch size for one training iteration. Can be larger than batch_gpu * num_gpus.
     batch_gpu=4,  # Number of samples processed at a time by one GPU.
     ema_kimg=10,  # Half-life of the exponential moving average (EMA) of generator weights.
@@ -333,11 +335,10 @@ def training_loop(
     tick_start_nimg = cur_nimg
     tick_start_time = time.time()
     maintenance_time = tick_start_time - start_time
-    batch_idx = 0
+    batch_idx = start_epoch
     if progress_fn is not None:
         progress_fn(0, total_kimg)
     while True:
-
         # Fetch training data.
         with torch.autograd.profiler.record_function("data_fetch"):
             phase_real_img, phase_real_c = next(training_set_iterator)
@@ -521,9 +522,13 @@ def training_loop(
             snapshot_pkl = os.path.join(
                 run_dir, f"network-snapshot-{cur_nimg//1000:06d}.pkl"
             )
+            latest_pkl = os.path.join(run_dir, "model.pkl")
             if rank == 0:
                 with open(snapshot_pkl, "wb") as f:
                     pickle.dump(snapshot_data, f)
+                with open(latest_pkl, "wb") as f:
+                    pickle.dump(snapshot_data, f)
+                wandb.save(latest_pkl)
 
         # Evaluate metrics.
         if (snapshot_data is not None) and (len(metrics) > 0):
@@ -543,6 +548,7 @@ def training_loop(
                         result_dict, run_dir=run_dir, snapshot_pkl=snapshot_pkl
                     )
                 stats_metrics.update(result_dict.results)
+            wandb.log(stats_metrics, step=epoch)
         del snapshot_data  # conserve memory
 
         # Collect statistics.

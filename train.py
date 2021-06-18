@@ -17,6 +17,8 @@ import tempfile
 import torch
 import dnnlib
 
+import wandb
+
 from training import training_loop
 from metrics import metric_main
 from torch_utils import training_stats
@@ -588,6 +590,44 @@ class CommaSeparatedList(click.ParamType):
         return value.split(",")
 
 
+def init_wandb_run(config, run_dir="./", mode="run"):
+    resume_id = config.resume
+    run_dir = Path(run_dir).absolute()
+
+    if resume_id:
+        run_id = resume_id
+    else:
+        run_id = wandb.util.generate_id()
+
+    try:
+        # try to resume run (assume config.resume is run_id)
+        run = wandb.init(
+            project="stylegan2",
+            id=run_id,
+            entity="bugan",
+            resume=True,
+            dir=run_dir,
+            mode=mode,
+        )
+    except Exception as e:
+        print(e)
+        print("assume config.resume is not wandb run_id")
+        run = wandb.init(
+            project="stylegan2",
+            id=wandb.util.generate_id(),
+            entity="bugan",
+            resume=True,
+            dir=run_dir,
+            mode=mode,
+        )
+
+    wandb.config.update(config, allow_val_change=True)
+    print("run id: " + str(wandb.run.id))
+    print("run name: " + str(wandb.run.name))
+    wandb.watch_called = False
+    return run
+
+
 # ----------------------------------------------------------------------------
 
 
@@ -738,6 +778,15 @@ def main(ctx, outdir, dry_run, **config_kwargs):
       <PATH or URL>  Custom network pickle.
     """
     dnnlib.util.Logger(should_flush=True)
+
+    # Setup wandb run.
+    run = init_wandb_run(config_kwargs, run_dir=config_kwargs.outdir, mode="run")
+    if config_kwargs.resume == run.id:
+        # load stored model param file
+        print(f"resuming model from wandb run_id: {resume_id}......")
+        model = wandb.restore("model.pkl")
+        config_kwargs.resume = model.name
+        config_kwargs.start_epoch = previous_run.lastHistoryStep
 
     # Setup training options.
     try:
