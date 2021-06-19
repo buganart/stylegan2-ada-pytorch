@@ -58,6 +58,7 @@ def setup_training_loop_kwargs(
     augpipe=None,  # Augmentation pipeline: 'blit', 'geom', 'color', 'filter', 'noise', 'cutout', 'bg', 'bgc' (default), ..., 'bgcfnc'
     # Transfer learning.
     resume=None,  # Load previous network: 'noresume' (default), 'ffhq256', 'ffhq512', 'ffhq1024', 'celebahq256', 'lsundog256', <file>, <url>
+    start_epoch=0,  # for resume training, the last epoch(step) of the previous training loop
     freezed=None,  # Freeze-D: <int>, default = 0 discriminator layers
     # Performance options (not included in desc).
     fp32=None,  # Disable mixed-precision training: <bool>, default = False
@@ -786,10 +787,10 @@ def main(ctx, outdir, dry_run, **config_kwargs):
     run = init_wandb_run(config_dict, run_dir=outdir, mode="run")
     if config_dict.resume == run.id:
         # load stored model param file
-        print(f"resuming model from wandb run_id: {resume_id}......")
+        print(f"resuming model from wandb run_id: {config_dict.resume}......")
         model = wandb.restore("model.pkl")
         config_kwargs["resume"] = model.name
-        config_kwargs["start_epoch"] = previous_run.lastHistoryStep
+        config_kwargs["start_epoch"] = run.lastHistoryStep
     elif not config_dict.resume:
         # config_kwargs.resume is empty ("")
         config_kwargs["resume"] = "noresume"
