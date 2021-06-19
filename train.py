@@ -39,7 +39,7 @@ def setup_training_loop_kwargs(
     # General options (not included in desc).
     gpus=None,  # Number of GPUs: <int>, default = 1 gpu
     snap=None,  # Snapshot interval: <int>, default = 50 ticks
-    metrics=None,  # List of metric names: [], ['fid50k_full'] (default), ...
+    metrics=None,  # List of metric names: [] (default), ['fid50k_full'], ...
     seed=None,  # Random seed: <int>, default = 0
     # Dataset.
     data=None,  # Training dataset (required): <path>
@@ -88,7 +88,8 @@ def setup_training_loop_kwargs(
     args.network_snapshot_ticks = snap
 
     if metrics is None:
-        metrics = ["fid50k_full"]
+        # fid50k_full may not help if dataset/model is different
+        metrics = []
     assert isinstance(metrics, list)
     if not all(metric_main.is_valid_metric(metric) for metric in metrics):
         raise UserError(
@@ -647,7 +648,7 @@ def init_wandb_run(config, run_dir="./", mode="run"):
 )
 @click.option(
     "--metrics",
-    help='Comma-separated list or "none" [default: fid50k_full]',
+    help='Comma-separated list or "none" [default: []]',
     type=CommaSeparatedList(),
 )
 @click.option("--seed", help="Random seed [default: 0]", type=int, metavar="INT")
