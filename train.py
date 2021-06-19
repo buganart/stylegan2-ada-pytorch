@@ -18,6 +18,7 @@ import torch
 import dnnlib
 
 import wandb
+from pathlib import Path
 
 from training import training_loop
 from metrics import metric_main
@@ -780,16 +781,17 @@ def main(ctx, outdir, dry_run, **config_kwargs):
     dnnlib.util.Logger(should_flush=True)
 
     # Setup wandb run.
-    run = init_wandb_run(config_kwargs, run_dir=config_kwargs.outdir, mode="run")
-    if config_kwargs.resume == run.id:
+    config_dict = dnnlib.EasyDict(config_kwargs)
+    run = init_wandb_run(config_dict, run_dir=outdir, mode="run")
+    if config_dict.resume == run.id:
         # load stored model param file
         print(f"resuming model from wandb run_id: {resume_id}......")
         model = wandb.restore("model.pkl")
-        config_kwargs.resume = model.name
-        config_kwargs.start_epoch = previous_run.lastHistoryStep
-    elif not config_kwargs.resume:
+        config_kwargs["resume"] = model.name
+        config_kwargs["start_epoch"] = previous_run.lastHistoryStep
+    elif not config_dict.resume:
         # config_kwargs.resume is empty ("")
-        config_kwargs.resume = "noresume"
+        config_kwargs["resume"] = "noresume"
 
     # Setup training options.
     try:
@@ -837,11 +839,11 @@ def main(ctx, outdir, dry_run, **config_kwargs):
 
     # Launch processes.
     print("Launching processes...")
-    torch.multiprocessing.set_start_method("spawn")
     with tempfile.TemporaryDirectory() as temp_dir:
         if args.num_gpus == 1:
             subprocess_fn(rank=0, args=args, temp_dir=temp_dir)
         else:
+            torch.multiprocessing.set_start_method("spawn")
             torch.multiprocessing.spawn(
                 fn=subprocess_fn, args=(args, temp_dir), nprocs=args.num_gpus
             )
