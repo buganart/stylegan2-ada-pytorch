@@ -476,6 +476,10 @@ def convert_dataset(
         # Error check to require uniform image attributes across
         # the whole dataset.
         channels = img.shape[2] if img.ndim == 3 else 1
+        # handle RGBA image => RGB image
+        if channels == 4:
+            img = np.array(PIL.Image.fromarray(img).convert("RGB"))
+            channels = 3
         cur_image_attrs = {
             "width": img.shape[1],
             "height": img.shape[0],

@@ -787,6 +787,9 @@ def main(ctx, outdir, dry_run, **config_kwargs):
         model = wandb.restore("model.pkl")
         config_kwargs.resume = model.name
         config_kwargs.start_epoch = previous_run.lastHistoryStep
+    elif not config_kwargs.resume:
+        # config_kwargs.resume is empty ("")
+        config_kwargs.resume = "noresume"
 
     # Setup training options.
     try:
