@@ -602,27 +602,15 @@ def init_wandb_run(config, run_dir="./", mode="run"):
     else:
         run_id = wandb.util.generate_id()
 
-    try:
-        # try to resume run (assume config.resume is run_id)
-        run = wandb.init(
-            project="stylegan2",
-            id=run_id,
-            entity="bugan",
-            resume=True,
-            dir=run_dir,
-            mode=mode,
-        )
-    except Exception as e:
-        print(e)
-        print("assume config.resume is not wandb run_id")
-        run = wandb.init(
-            project="stylegan2",
-            id=wandb.util.generate_id(),
-            entity="bugan",
-            resume=True,
-            dir=run_dir,
-            mode=mode,
-        )
+    # try to resume run (assume config.resume is run_id)
+    run = wandb.init(
+        project="stylegan2",
+        id=run_id,
+        entity="bugan",
+        resume="allow",
+        dir=run_dir,
+        mode=mode,
+    )
 
     wandb.config.update(config, allow_val_change=True)
     print("run id: " + str(wandb.run.id))

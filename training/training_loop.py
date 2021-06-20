@@ -331,11 +331,11 @@ def training_loop(
         print(f"Training for {total_kimg} kimg...")
         print()
     cur_nimg = 0
-    cur_tick = 0
+    cur_tick = start_epoch
     tick_start_nimg = cur_nimg
     tick_start_time = time.time()
     maintenance_time = tick_start_time - start_time
-    batch_idx = start_epoch
+    batch_idx = 0
     if progress_fn is not None:
         progress_fn(0, total_kimg)
     while True:
@@ -559,7 +559,7 @@ def training_loop(
             training_stats.report0("Timing/" + phase.name, value)
         stats_collector.update()
         stats_dict = stats_collector.as_dict()
-        wandb.log(stats_dict, step=batch_idx)
+        wandb.log(stats_dict, step=cur_tick)
 
         # Update logs.
         timestamp = time.time()
