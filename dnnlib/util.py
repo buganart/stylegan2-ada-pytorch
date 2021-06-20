@@ -67,6 +67,7 @@ class Logger(object):
         self.should_flush = should_flush
         self.stdout = sys.stdout
         self.stderr = sys.stderr
+        self.encoding = sys.stdout.encoding
 
         sys.stdout = self
         sys.stderr = self
