@@ -120,8 +120,8 @@ def training_loop(
     ada_kimg=500,  # ADA adjustment speed, measured in how many kimg it takes for p to increase/decrease by one unit.
     total_kimg=25000,  # Total length of the training, measured in thousands of real images.
     kimg_per_tick=4,  # Progress snapshot interval.
-    image_snapshot_ticks=50,  # How often to save image snapshots? None = disable.
-    network_snapshot_ticks=50,  # How often to save network snapshots? None = disable.
+    image_snapshot_ticks=10,  # How often to save image snapshots? None = disable.
+    network_snapshot_ticks=10,  # How often to save network snapshots? None = disable.
     resume_pkl=None,  # Network pickle to resume training from.
     cudnn_benchmark=True,  # Enable torch.backends.cudnn.benchmark?
     allow_tf32=False,  # Enable torch.backends.cuda.matmul.allow_tf32 and torch.backends.cudnn.allow_tf32?
@@ -330,12 +330,12 @@ def training_loop(
     if rank == 0:
         print(f"Training for {total_kimg} kimg...")
         print()
-    cur_nimg = 0
+    cur_nimg = start_epoch * batch_size
     cur_tick = start_epoch
     tick_start_nimg = cur_nimg
     tick_start_time = time.time()
     maintenance_time = tick_start_time - start_time
-    batch_idx = 0
+    batch_idx = cur_tick
     if progress_fn is not None:
         progress_fn(0, total_kimg)
     while True:
