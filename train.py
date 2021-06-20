@@ -790,7 +790,10 @@ def main(ctx, outdir, dry_run, **config_kwargs):
         print(f"resuming model from wandb run_id: {config_dict.resume}......")
         model = wandb.restore("model.pkl")
         config_kwargs["resume"] = model.name
-        config_kwargs["start_epoch"] = run.lastHistoryStep
+
+        api = wandb.Api()
+        previous_run = api.run(f"bugan/stylegan2/{config_dict.resume}")
+        config_kwargs["start_epoch"] = previous_run.lastHistoryStep
     elif not config_dict.resume:
         # config_kwargs.resume is empty ("")
         config_kwargs["resume"] = "noresume"

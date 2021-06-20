@@ -548,7 +548,6 @@ def training_loop(
                         result_dict, run_dir=run_dir, snapshot_pkl=snapshot_pkl
                     )
                 stats_metrics.update(result_dict.results)
-            wandb.log(stats_metrics, step=epoch)
         del snapshot_data  # conserve memory
 
         # Collect statistics.
@@ -560,6 +559,7 @@ def training_loop(
             training_stats.report0("Timing/" + phase.name, value)
         stats_collector.update()
         stats_dict = stats_collector.as_dict()
+        wandb.log(stats_dict, step=batch_idx)
 
         # Update logs.
         timestamp = time.time()
