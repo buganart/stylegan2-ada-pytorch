@@ -73,6 +73,9 @@ def setup_training_loop_kwargs(
     # General options: gpus, snap, metrics, seed
     # ------------------------------------------
 
+    # set start / resume epoch
+    args.start_epoch = start_epoch
+
     if gpus is None:
         gpus = 1
     assert isinstance(gpus, int)
