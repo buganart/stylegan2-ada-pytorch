@@ -525,6 +525,7 @@ def training_loop(
             )
             latest_pkl = os.path.join(wandb.run.dir, "model.pkl")
             if rank == 0:
+                print(f"saving network at {cur_tick}:",snapshot_pkl)
                 with open(latest_pkl, "wb") as f:
                     pickle.dump(snapshot_data, f)
                 with open(snapshot_pkl, "wb") as f:
