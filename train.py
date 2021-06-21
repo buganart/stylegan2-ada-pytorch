@@ -782,6 +782,7 @@ def main(ctx, outdir, dry_run, **config_kwargs):
         api = wandb.Api()
         previous_run = api.run(f"bugan/stylegan2/{config_dict.resume}")
         config_kwargs["start_epoch"] = previous_run.lastHistoryStep
+        print("from wandb record: resume from timestep ", config_kwargs["start_epoch"])
     elif not config_dict.resume:
         # config_kwargs.resume is empty ("")
         config_kwargs["resume"] = "noresume"

@@ -326,6 +326,7 @@ def training_loop(
         except ImportError as err:
             print("Skipping tfevents export:", err)
 
+    print("Start from tick: ", start_epoch)
     # Train.
     if rank == 0:
         print(f"Training for {total_kimg} kimg...")
@@ -559,6 +560,7 @@ def training_loop(
             training_stats.report0("Timing/" + phase.name, value)
         stats_collector.update()
         stats_dict = stats_collector.as_dict()
+        print(stats_dict)
         wandb.log(stats_dict, step=cur_tick)
 
         # Update logs.
