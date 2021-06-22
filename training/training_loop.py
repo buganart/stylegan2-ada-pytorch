@@ -306,7 +306,7 @@ def training_loop(
         )
         # also save images to wandb
         images = process_generated_image(images, [-1, 1], grid_size)
-        wandb.log({"pre_sample_image": wandb.Image(images)}, step=cur_tick)
+        wandb.log({"pre_sample_image": wandb.Image(images)}, step=start_epoch)
 
         grid_z = torch.randn([labels.shape[0], G.z_dim], device=device).split(batch_gpu)
         grid_c = torch.from_numpy(labels).to(device).split(batch_gpu)
@@ -321,7 +321,7 @@ def training_loop(
         )
         # also save images to wandb
         images = process_generated_image(images, [-1, 1], grid_size)
-        wandb.log({"pre_generated_image": wandb.Image(images)}, step=cur_tick)
+        wandb.log({"pre_generated_image": wandb.Image(images)}, step=start_epoch)
 
     # Initialize logs.
     if rank == 0:
