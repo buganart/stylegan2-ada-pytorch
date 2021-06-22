@@ -72,6 +72,11 @@ def setup_snapshot_image_grid(training_set, random_seed=0):
 
 
 def save_image_grid(img, fname, drange, grid_size):
+    img = process_generated_image(img, drange, grid_size)
+    img.save(fname)
+
+
+def process_generated_image(img, drange, grid_size):
     lo, hi = drange
     img = np.asarray(img, dtype=np.float32)
     img = (img - lo) * (255 / (hi - lo))
@@ -85,9 +90,10 @@ def save_image_grid(img, fname, drange, grid_size):
 
     assert C in [1, 3]
     if C == 1:
-        PIL.Image.fromarray(img[:, :, 0], "L").save(fname)
+        img = PIL.Image.fromarray(img[:, :, 0], "L")
     if C == 3:
-        PIL.Image.fromarray(img, "RGB").save(fname)
+        img = PIL.Image.fromarray(img, "RGB")
+    return img
 
 
 # ----------------------------------------------------------------------------
@@ -298,6 +304,10 @@ def training_loop(
             drange=[0, 255],
             grid_size=grid_size,
         )
+        # also save images to wandb
+        images = process_generated_image(images, [-1, 1], grid_size)
+        wandb.log({"pre_sample_image": wandb.Image(images)}, step=cur_tick)
+
         grid_z = torch.randn([labels.shape[0], G.z_dim], device=device).split(batch_gpu)
         grid_c = torch.from_numpy(labels).to(device).split(batch_gpu)
         images = torch.cat(
@@ -309,6 +319,9 @@ def training_loop(
             drange=[-1, 1],
             grid_size=grid_size,
         )
+        # also save images to wandb
+        images = process_generated_image(images, [-1, 1], grid_size)
+        wandb.log({"pre_generated_image": wandb.Image(images)}, step=cur_tick)
 
     # Initialize logs.
     if rank == 0:
@@ -500,6 +513,9 @@ def training_loop(
                 drange=[-1, 1],
                 grid_size=grid_size,
             )
+            # also save images to wandb
+            images = process_generated_image(images, [-1, 1], grid_size)
+            wandb.log({"generated_image": wandb.Image(images)}, step=cur_tick)
 
         # Save network snapshot.
         snapshot_pkl = None
@@ -525,7 +541,7 @@ def training_loop(
             )
             latest_pkl = os.path.join(wandb.run.dir, "model.pkl")
             if rank == 0:
-                print(f"saving network at {cur_tick}:",snapshot_pkl)
+                print(f"saving network at {cur_tick}:", snapshot_pkl)
                 with open(latest_pkl, "wb") as f:
                     pickle.dump(snapshot_data, f)
                 with open(snapshot_pkl, "wb") as f:
