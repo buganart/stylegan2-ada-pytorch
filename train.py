@@ -84,7 +84,7 @@ def setup_training_loop_kwargs(
     args.num_gpus = gpus
 
     if snap is None:
-        snap = 50
+        snap = 5
     assert isinstance(snap, int)
     if snap < 1:
         raise UserError("--snap must be at least 1")
