@@ -42,10 +42,26 @@ def num_range(s: str) -> List[int]:
 @click.option("--network", "network_pkl", help="Network pickle filename", required=True)
 @click.option("--seeds", type=num_range, help="List of random seeds")
 @click.option(
+    "--latent",
+    "latent",
+    type=bool,
+    help="whether to perform latent space exploration or random generation",
+    default=False,
+    show_default=True,
+)
+@click.option(
     "--trunc",
     "truncation_psi",
     type=float,
     help="Truncation psi",
+    default=1,
+    show_default=True,
+)
+@click.option(
+    "--frames",
+    "frames",
+    type=int,
+    help="number of samples per seed",
     default=1,
     show_default=True,
 )
@@ -73,8 +89,10 @@ def num_range(s: str) -> List[int]:
 def generate_images(
     ctx: click.Context,
     network_pkl: str,
+    latent: bool,
     seeds: Optional[List[int]],
     truncation_psi: float,
+    frames: int,
     noise_mode: str,
     outdir: str,
     class_idx: Optional[int],
@@ -107,7 +125,7 @@ def generate_images(
 
     print('Loading networks from "%s"...' % network_pkl)
     # device = torch.device('cuda')
-    device = torch.device("cpu")
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     with dnnlib.util.open_url(network_pkl) as f:
         G = legacy.load_network_pkl(f)["G_ema"].to(device)  # type: ignore
 
@@ -144,21 +162,79 @@ def generate_images(
         if class_idx is not None:
             print("warn: --class=lbl ignored when running on an unconditional network")
 
-    # Generate images.
-    for seed_idx, seed in enumerate(seeds):
-        print("Generating image for seed %d (%d/%d) ..." % (seed, seed_idx, len(seeds)))
-        z = torch.from_numpy(np.random.RandomState(seed).randn(1, G.z_dim)).to(device)
-        img = G(
-            z,
-            label,
-            truncation_psi=truncation_psi,
-            noise_mode=noise_mode,
-            force_fp32=True,
-        )
-        img = (img.permute(0, 2, 3, 1) * 127.5 + 128).clamp(0, 255).to(torch.uint8)
-        PIL.Image.fromarray(img[0].cpu().numpy(), "RGB").save(
-            f"{outdir}/seed{seed:04d}.png"
-        )
+    if latent:
+        # seed to latent vectors
+        zs = []
+        for seed in seeds:
+            rng = np.random.RandomState(seed)
+            z = rng.randn(1, G.z_dim)
+            zs.append(z)
+
+        # convert to linspace
+        num_walk = len(zs) - 1
+        walk_vectors = []
+        sample = int(frames / num_walk) + 1
+        for nw in range(num_walk):
+            z0, z1 = zs[nw + 0], zs[nw + 1]
+            walk_vector = np.linspace(z0, z1, sample)
+            walk_vectors.append(walk_vector)
+
+        # generate images
+        for nw in range(num_walk):
+            latent_z = walk_vectors[nw].astype("float32")
+            seed0, seed1 = seeds[nw + 0], seeds[nw + 1]
+            print(
+                "Generating images for seed %d-%d (%d/%d)..."
+                % (seed0, seed1, nw, num_walk)
+            )
+            for vector_index in range(latent_z.shape[0]):
+                print("Generating image %d..." % (vector_index))
+                vector = latent_z[vector_index].reshape((1, -1)).to(device)
+                img = G(
+                    vector,
+                    label,
+                    truncation_psi=truncation_psi,
+                    noise_mode=noise_mode,
+                    force_fp32=True,
+                )
+                # converting image to uint8
+                img = (
+                    (img.permute(0, 2, 3, 1) * 127.5 + 128)
+                    .clamp(0, 255)
+                    .to(torch.uint8)
+                )
+                out_image = img[0].cpu().numpy()
+                PIL.Image.fromarray(out_image, "RGB").save(
+                    f"{outdir}/seed{seed0:04d}-{seed1:04d}_i{vector_index}.png"
+                )
+
+    else:
+        # Generate images.
+        for seed_idx, seed in enumerate(seeds):
+            print(
+                "Generating image for seed %d (%d/%d) ..."
+                % (seed, seed_idx, len(seeds))
+            )
+            z = torch.from_numpy(np.random.RandomState(seed).randn(frames, G.z_dim)).to(
+                device
+            )
+            for vector_index in range(frames):
+                vector = z[vector_index].reshape((1, -1)).to(device)
+                img = G(
+                    vector,
+                    label,
+                    truncation_psi=truncation_psi,
+                    noise_mode=noise_mode,
+                    force_fp32=True,
+                )
+                img = (
+                    (img.permute(0, 2, 3, 1) * 127.5 + 128)
+                    .clamp(0, 255)
+                    .to(torch.uint8)
+                )
+                PIL.Image.fromarray(img[0].cpu().numpy(), "RGB").save(
+                    f"{outdir}/seed{seed:04d}_i{vector_index}.png"
+                )
 
 
 # ----------------------------------------------------------------------------
