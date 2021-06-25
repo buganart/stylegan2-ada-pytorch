@@ -189,7 +189,9 @@ def generate_images(
             )
             for vector_index in range(latent_z.shape[0]):
                 print("Generating image %d..." % (vector_index))
-                vector = latent_z[vector_index].reshape((1, -1)).to(device)
+                vector = torch.Tensor(latent_z[vector_index].reshape((1, -1))).to(
+                    device
+                )
                 img = G(
                     vector,
                     label,
