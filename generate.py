@@ -221,6 +221,7 @@ def generate_images(
                 device
             )
             for vector_index in range(frames):
+                print("Generating image %d..." % (vector_index))
                 vector = z[vector_index].reshape((1, -1)).to(device)
                 img = G(
                     vector,
