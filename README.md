@@ -52,8 +52,32 @@ Apart from the parameters already in the generate script, some modifications hav
 
 After that, run the notebook, and the generated images will be stored in the out_dir.
 
-## [api.py](https://github.com/buganart/stylegan2-ada-pytorch/blob/main/api.py)
+## Extra: [api.py](https://github.com/buganart/stylegan2-ada-pytorch/blob/main/api.py)
 
-This is an API server only for the exploration/testing purpose.
+This is an flask API server only for the exploration/testing purpose.
 The user need to download and save pkl file near the api.py script in the following structure.
-TODO
+* stylegan2_repo
+    *  api.py
+    *  checkpoint
+        *   ffhq.pkl
+        *   your_ckpt.pkl
+
+Then, run 
+
+    python api.py
+    
+After the server is started, construct API request with the following information:
+
+    POST http://127.0.0.1:8080/generate-latent-walk
+    "Content-Type: application/json"
+    {
+        "ckpt_file" : "your_ckpt.pkl", 
+        "seeds": "3,7,10",
+        "frames": "10",
+        "psi", "1",
+        "class_idx", "0",
+        "noise_mode", "const"
+    } 
+
+The `ip_address` should be `127.0.0.1` for windows by default, and `0.0.0.0` for linux by default.
+Then, the server will send back a mjpeg stream with latent space walk loop starting from seed 3 to seed 10.
