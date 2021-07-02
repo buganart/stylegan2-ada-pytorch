@@ -64,6 +64,9 @@ The user need to download and save pkl file near the api.py script in the follow
 
 Then, run 
 
+    # install dependency
+    pip install numpy scipy ninja pyspng wandb flask torch pillow
+    # run api
     python api.py
     
 After the server is started, construct API request with the following information:
@@ -74,9 +77,9 @@ After the server is started, construct API request with the following informatio
         "ckpt_file" : "your_ckpt.pkl", 
         "seeds": "3,7,10",
         "frames": "10",
-        "psi", "1",
-        "class_idx", "0",
-        "noise_mode", "const"
+        "psi": "1",
+        "class_idx": "0",
+        "noise_mode": "const"
     } 
 
 The `ip_address` should be `127.0.0.1` for windows by default, and `0.0.0.0` for linux by default.
